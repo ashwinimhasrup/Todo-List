@@ -4,11 +4,11 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "4000:4000"
     depends_on:
       - mongo
-    environment:
-      - MONGODB_URI=mongodb://mongo:27017/todolist
+    env_file:
+      - .env   # load the same env file inside the container
     
   mongo:
     image: mongo:latest
