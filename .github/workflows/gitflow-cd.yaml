@@ -10,7 +10,6 @@ on:
       - 'hotfix/**'
     tags:
       - 'v*.*.*'
-
 jobs:
   deploy:
     runs-on: self-hosted
