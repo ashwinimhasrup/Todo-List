@@ -43,6 +43,7 @@ jobs:
           else
             echo "env=dev" >> $GITHUB_OUTPUT
             echo "tag=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
         shell: bash
 
       - name: Log in to DockerHub
