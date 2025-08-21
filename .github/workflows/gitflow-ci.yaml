@@ -17,7 +17,8 @@ on:
 
 jobs:
   build-test-push:
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -44,10 +45,10 @@ jobs:
       - name: Set Environment & Image Tag
         id: set-env
         run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/develop" ]]; then
+          if [[ "${GITHUB_REF}" == refs/heads/develop ]]; then
             echo "env=dev" >> $GITHUB_OUTPUT
             echo "tag=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+          elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             echo "env=prod" >> $GITHUB_OUTPUT
             echo "tag=prod-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
@@ -62,7 +63,6 @@ jobs:
           else
             echo "env=feature" >> $GITHUB_OUTPUT
             echo "tag=feature-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          fi
         shell: bash
 
       - name: Docker login
