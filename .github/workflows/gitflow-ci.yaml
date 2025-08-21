@@ -63,6 +63,7 @@ jobs:
           else
             echo "env=feature" >> $GITHUB_OUTPUT
             echo "tag=feature-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
         shell: bash
 
       - name: Docker login
