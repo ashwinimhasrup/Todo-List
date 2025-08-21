@@ -1,13 +1,10 @@
 # name: CD
-# # Continuous Deployment flow using Gitflow branching
+# # check cd flow for develop branch 
 # on:
 #   push:
 #     branches:
 #       - main
 #       - develop
-#       - 'feature/**'
-#       - 'release/**'
-#       - 'hotfix/**'
 #     tags:
 #       - 'v*.*.*'
 
@@ -23,20 +20,8 @@
 #         id: set-env
 #         run: |
 #           if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
-#             echo "env=prod" >> $GITHUB_OUTPUT
-#             echo "tag=prod-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-#           elif [[ "${GITHUB_REF}" == refs/heads/develop ]]; then
 #             echo "env=dev" >> $GITHUB_OUTPUT
 #             echo "tag=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-#           elif [[ "${GITHUB_REF}" == refs/heads/feature/* ]]; then
-#             echo "env=feature" >> $GITHUB_OUTPUT
-#             echo "tag=feature-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-#           elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
-#             echo "env=staging" >> $GITHUB_OUTPUT
-#             echo "tag=staging-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-#           elif [[ "${GITHUB_REF}" == refs/heads/hotfix/* ]]; then
-#             echo "env=hotfix" >> $GITHUB_OUTPUT
-#             echo "tag=hotfix-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 #           elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
 #             echo "env=prod" >> $GITHUB_OUTPUT
 #             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
