@@ -1,5 +1,4 @@
 name: CD
-
 on:
   push:
     branches:
@@ -14,7 +13,6 @@ on:
     workflows: ["CI Pipeline"]
     types:
       - completed
-
 jobs:
   deploy:
     runs-on: self-hosted
@@ -30,8 +28,8 @@ jobs:
             echo "env=prod" >> $GITHUB_OUTPUT
             echo "tag=prod-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           elif [[ "${GITHUB_REF}" == refs/heads/develop ]]; then
-            echo "env=staging" >> $GITHUB_OUTPUT
-            echo "tag=staging-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "env=dev" >> $GITHUB_OUTPUT
+            echo "tag=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           elif [[ "${GITHUB_REF}" == refs/heads/feature/* ]]; then
             echo "env=feature" >> $GITHUB_OUTPUT
             echo "tag=feature-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
@@ -63,43 +61,23 @@ jobs:
           docker build -t $IMAGE .
           docker push $IMAGE
 
-      - name: Setup kind (local cluster)
-        uses: helm/kind-action@v1.10.0
-        with:
-          version: v0.22.0
-          cluster_name: todo-cluster
+      # - name: Setup kind (local cluster)
+      #   uses: helm/kind-action@v1.10.0
+      #   with:
+      #     version: v0.22.0
+      #     cluster_name: todo-cluster
+
+      - name: Set up kubectl
+       run: |
+         echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+         kubectl cluster-info
 
       - name: Update K8s Manifests with Image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
-          echo "Deploying image: ${IMAGE}"
-          
-          # Create namespace if not exists
           kubectl create namespace ${{ steps.set-env.outputs.env }} --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Update NodeTodo manifest with image
-          sed -i "s|image:.*nodetodo.*|image: ${IMAGE}|g" k8s/nodetodo.yml
-          
-          # Apply manifests
-          kubectl apply -f k8s/mongo.yml -n ${{ steps.set-env.outputs.env }}
-          kubectl apply -f k8s/nodetodo.yml -n ${{ steps.set-env.outputs.env }}
-          
-          # Wait for deployments
-          kubectl wait --for=condition=available --timeout=300s deployment/mongo -n ${{ steps.set-env.outputs.env }} || echo "MongoDB might be using StatefulSet or different resource type"
-          kubectl wait --for=condition=available --timeout=300s deployment/nodetodo -n ${{ steps.set-env.outputs.env }}
-          
-          # Logs & status
-          kubectl get pods,svc,deployments -n ${{ steps.set-env.outputs.env }}
-          kubectl logs -l app=mongo -n ${{ steps.set-env.outputs.env }} --tail=10 || echo "Could not fetch MongoDB logs"
-          kubectl logs -l app=nodetodo -n ${{ steps.set-env.outputs.env }} --tail=10 || echo "Could not fetch NodeTodo logs"
-          kubectl describe svc -n ${{ steps.set-env.outputs.env }}
-          
-          # Port forwarding & test
-          kubectl port-forward service/nodetodo 3000:3000 -n ${{ steps.set-env.outputs.env }} &
-          PORT_FORWARD_PID=$!
-          sleep 5
-          curl -f http://localhost:3000 || echo "Application might still be starting up"
-          echo "Deployment completed!"
-          echo "Application should be accessible at: http://localhost:3000"
-          echo "Port forward PID: $PORT_FORWARD_PID (will run in background)"
-          echo $PORT_FORWARD_PID > /tmp/port_forward_pid
+          for f in k8s/${{ steps.set-env.outputs.env }}/*.yaml; do
+            sed -i 's|image:.*nodetodo.*|image: ${{ secrets.DOCKER_USERNAME }}/nodetodo:${{ github.sha }}|g' k8s/nodetodo.yml
+          done
+      
+      
