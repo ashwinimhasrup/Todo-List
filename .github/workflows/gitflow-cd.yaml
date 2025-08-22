@@ -70,5 +70,4 @@ jobs:
           for f in k8s/${{ steps.set-env.outputs.env }}/*.yaml; do
             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n ${{ steps.set-env.outputs.env }} -f -
           done
-      #       sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n ${{ steps.set-env.outputs.env }} -f -
-          done
+      
