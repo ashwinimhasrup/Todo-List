@@ -68,6 +68,6 @@ jobs:
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
           kubectl create namespace ${{ steps.set-env.outputs.env }} --dry-run=client -o yaml | kubectl apply -f -
           for f in k8s/${{ steps.set-env.outputs.env }}/*.yaml; do
-            sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n ${{ steps.set-env.outputs.env }} -f -
+            sed -i 's|image:.*nodetodo.*|image: ${{ secrets.DOCKER_USERNAME }}/nodetodo:${{ github.sha }}|g' k8s/nodetodo.yml
           done
       
