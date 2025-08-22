@@ -63,11 +63,63 @@ jobs:
           version: v0.22.0
           cluster_name: todo-cluster
 
-      - name: Update K8s Manifests with Image
-        run: |
-          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
-          kubectl create namespace ${{ steps.set-env.outputs.env }} --dry-run=client -o yaml | kubectl apply -f -
-          for f in k8s/${{ steps.set-env.outputs.env }}/*.yaml; do
-            sed -i 's|image:.*nodetodo.*|image: ${{ secrets.DOCKER_USERNAME }}/nodetodo:${{ github.sha }}|g' k8s/nodetodo.yml
-          done
+      # - name: Update K8s Manifests with Image
+      #   run: |
+      #     IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
+      #     kubectl create namespace ${{ steps.set-env.outputs.env }} --dry-run=client -o yaml | kubectl apply -f -
+      #     for f in k8s/${{ steps.set-env.outputs.env }}/*.yaml; do
+      #       sed -i 's|image:.*nodetodo.*|image: ${{ secrets.DOCKER_USERNAME }}/nodetodo:${{ github.sha }}|g' k8s/nodetodo.yml
+      #     done
       
+      - name: Update K8s Manifests with Image
+    run: |
+      IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
+      echo "Deploying image: ${IMAGE}"
+      
+      kubectl create namespace ${{ steps.set-env.outputs.env }} --dry-run=client -o yaml | kubectl apply -f -
+      sed -i "s|image:.*nodetodo.*|image: ${IMAGE}|g" k8s/nodetodo.yml
+      echo "Updated nodetodo.yml with image: ${IMAGE}"
+      echo "Applying MongoDB manifest..."
+      kubectl apply -f k8s/mongo.yml -n ${{ steps.set-env.outputs.env }}
+      
+      echo "Applying NodeTodo manifest..."
+      kubectl apply -f k8s/nodetodo.yml -n ${{ steps.set-env.outputs.env }}
+      
+      echo "Waiting for MongoDB to be ready..."
+      kubectl wait --for=condition=available --timeout=300s deployment/mongo -n ${{ steps.set-env.outputs.env }} || echo "MongoDB might be using StatefulSet or different resource type"
+      
+      echo "Waiting for NodeTodo deployment to be ready..."
+      kubectl wait --for=condition=available --timeout=300s deployment/nodetodo -n ${{ steps.set-env.outputs.env }}
+      
+      echo "Deployment Status:"
+      kubectl get pods -n ${{ steps.set-env.outputs.env }}
+      kubectl get svc -n ${{ steps.set-env.outputs.env }}
+      kubectl get deployments -n ${{ steps.set-env.outputs.env }}
+      
+      echo "Checking MongoDB logs:"
+      kubectl logs -l app=mongo -n ${{ steps.set-env.outputs.env }} --tail=10 || echo "Could not fetch MongoDB logs"
+      
+      echo "Checking NodeTodo logs:"
+      kubectl logs -l app=nodetodo -n ${{ steps.set-env.outputs.env }} --tail=10 || echo "Could not fetch NodeTodo logs"
+      
+      echo "Service Details:"
+      kubectl describe svc -n ${{ steps.set-env.outputs.env }}
+      
+      # Start port forwarding in background (for self-hosted runners)
+      echo "Setting up port forwarding..."
+      kubectl port-forward service/nodetodo 3000:3000 -n ${{ steps.set-env.outputs.env }} &
+      PORT_FORWARD_PID=$!
+      
+      # Give it a moment to start
+      sleep 5
+      
+      # Test if port forwarding is working
+      echo "Testing application accessibility..."
+      curl -f http://localhost:3000 || echo "Application might still be starting up"
+      
+      echo "Deployment completed!"
+      echo "Application should be accessible at: http://localhost:3000"
+      echo "Port forward PID: $PORT_FORWARD_PID (will run in background)"
+      
+      # Optional: Save port forward PID for cleanup in a later step
+      echo $PORT_FORWARD_PID > /tmp/port_forward_pid
