@@ -1,4 +1,8 @@
 name: CD
+workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
 on:
   push:
     branches:
