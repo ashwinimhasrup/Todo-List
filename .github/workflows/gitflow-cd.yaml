@@ -70,8 +70,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
-          NAMESPACE=${{ steps.set-env.outputs.env }}
-          
+          NAMESPACE=${{ steps.set-env.outputs.env }}  
           kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
           # safer than sed: directly update deployments
