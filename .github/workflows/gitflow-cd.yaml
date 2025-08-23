@@ -1,4 +1,5 @@
 name: CD
+
 on:
   push:
     branches:
@@ -21,24 +22,25 @@ jobs:
       - name: Set Environment
         id: set-env
         run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+          REF="${GITHUB_REF}"
+          if [[ "$REF" == "refs/heads/main" ]]; then
             echo "env=prod" >> $GITHUB_OUTPUT
             echo "tag=prod-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == "refs/heads/develop" ]]; then
+          elif [[ "$REF" == "refs/heads/develop" ]]; then
             echo "env=staging" >> $GITHUB_OUTPUT
             echo "tag=staging-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == refs/heads/feature/* ]]; then
+          elif [[ "$REF" =~ refs/heads/feature/.* ]]; then
             echo "env=feature" >> $GITHUB_OUTPUT
             echo "tag=feature-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
+          elif [[ "$REF" =~ refs/heads/release/.* ]]; then
             echo "env=staging" >> $GITHUB_OUTPUT
             echo "tag=staging-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == refs/heads/hotfix/* ]]; then
+          elif [[ "$REF" =~ refs/heads/hotfix/.* ]]; then
             echo "env=hotfix" >> $GITHUB_OUTPUT
             echo "tag=hotfix-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+          elif [[ "$REF" =~ refs/tags/v.* ]]; then
             echo "env=prod" >> $GITHUB_OUTPUT
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "tag=${REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "env=dev" >> $GITHUB_OUTPUT
             echo "tag=dev-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
@@ -58,19 +60,21 @@ jobs:
           docker build -t $IMAGE .
           docker push $IMAGE
 
-      - name: Set up kubectl
+      - name: Configure kubeconfig
         run: |
-          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
           kubectl cluster-info
 
-      - name: Update K8s Manifests with Image
+      - name: Deploy to Kubernetes
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/todo:${{ steps.set-env.outputs.tag }}
-          kubectl create namespace ${{ steps.set-env.outputs.env }} --dry-run=client -o yaml | kubectl apply -f -
-          for f in k8s/${{ steps.set-env.outputs.env }}/*.yaml; do
-            sed -i "s|image:.*|image: $IMAGE|g" "$f"
-            kubectl apply -f "$f" -n ${{ steps.set-env.outputs.env }}
-          done
+          NAMESPACE=${{ steps.set-env.outputs.env }}
+          
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
-      
-      
+          # safer than sed: directly update deployments
+          for deploy in $(kubectl get deploy -n $NAMESPACE -o name); do
+            kubectl set image $deploy todo-container=$IMAGE -n $NAMESPACE
+          done
