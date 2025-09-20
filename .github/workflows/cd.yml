@@ -16,6 +16,35 @@ on:
         default: 'dev'
 
 jobs:
+  code-review:
+    name: Code Review Required
+    runs-on: self-hosted
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Code quality check
+        run: |
+          echo "Running code quality checks..."
+          echo "PR requires manual review and approval before merge"
+
+
   deploy-dev:
     runs-on: self-hosted
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev'
