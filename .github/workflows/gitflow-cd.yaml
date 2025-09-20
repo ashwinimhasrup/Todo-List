@@ -1,181 +1,181 @@
-name: GitFlow CD Pipeline New
-on:
-  push:
-    branches: 
-      - main
-      - develop
-      - 'release-*'
-  pull_request:
-    branches:
-      - develop
-      - main
-    types: [opened, synchronize, reopened]
-  workflow_run:
-    workflows: ["CI Pipeline"]
-    types:
-      - completed
-    branches:
-      - main
-      - develop
-      - 'release-*'
+# name: GitFlow CD Pipeline New
+# on:
+#   push:
+#     branches: 
+#       - main
+#       - develop
+#       - 'release-*'
+#   pull_request:
+#     branches:
+#       - develop
+#       - main
+#     types: [opened, synchronize, reopened]
+#   workflow_run:
+#     workflows: ["CI Pipeline"]
+#     types:
+#       - completed
+#     branches:
+#       - main
+#       - develop
+#       - 'release-*'
 
-env:
-  NODE_VERSION: '18.x'
+# env:
+#   NODE_VERSION: '18.x'
 
-jobs:
-  code-review:
-    name: Code Review Required
-    runs-on: self-hosted
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Run tests
-        run: npm test
-      - name: Run linting
-        run: npm run lint
-      - name: Code quality check
-        run: |
-          echo "Running code quality checks..."
-          echo "PR requires manual review and approval before merge"
+# jobs:
+#   code-review:
+#     name: Code Review Required
+#     runs-on: self-hosted
+#     if: github.event_name == 'pull_request'
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: ${{ env.NODE_VERSION }}
+#           cache: 'npm'
+#       - name: Install dependencies
+#         run: npm ci
+#       - name: Run tests
+#         run: npm test
+#       - name: Run linting
+#         run: npm run lint
+#       - name: Code quality check
+#         run: |
+#           echo "Running code quality checks..."
+#           echo "PR requires manual review and approval before merge"
 
-  #  deploy develop to QA after merge
-  deploy-qa:
-    name: Deploy to QA
-    runs-on: self-hosted
-    # if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'develop')
-    environment: qa
+#   #  deploy develop to QA after merge
+#   deploy-qa:
+#     name: Deploy to QA
+#     runs-on: self-hosted
+#     # if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+#     if: |
+#       (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+#       (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'develop')
+#     environment: qa
     
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout Repo
+#         uses: actions/checkout@v4
 
-      - name: Set Environment
-        id: set-env
-        run: |
-          echo "env=prod" >> $GITHUB_OUTPUT
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        shell: bash
+#       - name: Set Environment
+#         id: set-env
+#         run: |
+#           echo "env=dev" >> $GITHUB_OUTPUT
+#           echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+#         shell: bash
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}          
-          password: ${{ secrets.DOCKER_PASSWORD }}
+#       - name: Log in to DockerHub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKER_USERNAME }}          
+#           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push Docker Image
-        run: |
-          IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
-          docker build -t $IMAGE .
-          docker push $IMAGE
+#       - name: Build and Push Docker Image
+#         run: |
+#           IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
+#           docker build -t $IMAGE .
+#           docker push $IMAGE
 
-      - name: Set up kubectl
-        run: |
-          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
-          kubectl cluster-info
+#       - name: Set up kubectl
+#         run: |
+#           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+#           kubectl cluster-info
 
-      - name: Update K8s Manifests with Image
-        run: |
-          IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
-          kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -
-          for f in k8s/*.yaml; do
-            sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n qa -f -
-          done
+#       - name: Update K8s Manifests with Image
+#         run: |
+#           IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
+#           kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -
+#           for f in k8s/*.yaml; do
+#             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n qa -f -
+#           done
 
-      - name: Deploy to K8s
-        run: |
-          kubectl rollout status deployment -n prod todolist
+#       - name: Deploy to K8s
+#         run: |
+#           kubectl rollout status deployment -n prod todolist
+
           
-          
-  #  deploy release-* branches to staging
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: self-hosted
-    if: startsWith(github.ref, 'refs/heads/release-') && github.event_name == 'push'
-    environment: staging
+#   #  deploy release-* branches to staging
+#   deploy-staging:
+#     name: Deploy to Staging
+#     runs-on: self-hosted
+#     if: startsWith(github.ref, 'refs/heads/release-') && github.event_name == 'push'
+#     environment: staging
     
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Create staging environment
-        run: |
-          echo "NODE_ENV=staging" > .env.staging
-          echo "PORT=3000" >> .env.staging
-          echo "MONGODB_URI=${{ secrets.STAGING_MONGODB_URI }}" >> .env.staging
-          echo "API_URL=${{ secrets.STAGING_API_URL }}" >> .env.staging
-      - name: Deploy to staging server
-        run: |
-          echo "Deploying to staging environment"
-          echo "Release branch: ${{ github.ref_name }}"
-      - name: Health check
-        run: |
-          echo "Running staging health check"
-          sleep 15
-          echo "Staging deployment health check passed"
-      - name: Notify team
-        run: |
-          echo "Staging deployment completed"
-          echo "Release branch: ${{ github.ref_name }}"
-          echo "Ready for final validation before production"
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: ${{ env.NODE_VERSION }}
+#           cache: 'npm'
+#       - name: Install dependencies
+#         run: npm ci
+#       - name: Create staging environment
+#         run: |
+#           echo "NODE_ENV=staging" > .env.staging
+#           echo "PORT=3000" >> .env.staging
+#           echo "MONGODB_URI=${{ secrets.STAGING_MONGODB_URI }}" >> .env.staging
+#           echo "API_URL=${{ secrets.STAGING_API_URL }}" >> .env.staging
+#       - name: Deploy to staging server
+#         run: |
+#           echo "Deploying to staging environment"
+#           echo "Release branch: ${{ github.ref_name }}"
+#       - name: Health check
+#         run: |
+#           echo "Running staging health check"
+#           sleep 15
+#           echo "Staging deployment health check passed"
+#       - name: Notify team
+#         run: |
+#           echo "Staging deployment completed"
+#           echo "Release branch: ${{ github.ref_name }}"
+#           echo "Ready for final validation before production"
 
-  # Deploy to production when tag is created
-  deploy-production:
-    name: Deploy to Production
-    runs-on: self-hosted
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
+#   # Deploy to production when tag is created
+#   deploy-production:
+#     name: Deploy to Production
+#     runs-on: self-hosted
+#     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#     environment: production
     
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci --production
-      - name: Create production environment
-        run: |
-          echo "NODE_ENV=production" > .env.production
-          echo "PORT=3000" >> .env.production
-          echo "MONGODB_URI=${{ secrets.PRODUCTION_MONGODB_URI }}" >> .env.production
-          echo "API_URL=${{ secrets.PRODUCTION_API_URL }}" >> .env.production
-      - name: Deploy to production server
-        run: |
-          echo "Deploying to production environment"
-      - name: Health check
-        run: |
-          echo "Running production health check"
-          sleep 20
-          echo "Production deployment health check passed"
-      - name: Create release tag
-        run: |
-          VERSION=$(date +%Y%m%d%H%M%S)
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag "v$VERSION"
-          git push origin "v$VERSION"
-          echo "Created release tag: v$VERSION"
-      - name: Notify team
-        run: |
-          echo "Production deployment completed successfully"
-          echo "Version: v$(date +%Y%m%d%H%M%S)"
-          echo "Deployment time: $(date)"
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: ${{ env.NODE_VERSION }}
+#           cache: 'npm'
+#       - name: Install dependencies
+#         run: npm ci --production
+#       - name: Create production environment
+#         run: |
+#           echo "NODE_ENV=production" > .env.production
+#           echo "PORT=3000" >> .env.production
+#           echo "MONGODB_URI=${{ secrets.PRODUCTION_MONGODB_URI }}" >> .env.production
+#           echo "API_URL=${{ secrets.PRODUCTION_API_URL }}" >> .env.production
+#       - name: Deploy to production server
+#         run: |
+#           echo "Deploying to production environment"
+#       - name: Health check
+#         run: |
+#           echo "Running production health check"
+#           sleep 20
+#           echo "Production deployment health check passed"
+#       - name: Create release tag
+#         run: |
+#           VERSION=$(date +%Y%m%d%H%M%S)
+#           git config --local user.email "action@github.com"
+#           git config --local user.name "GitHub Action"
+#           git tag "v$VERSION"
+#           git push origin "v$VERSION"
+#           echo "Created release tag: v$VERSION"
+#       - name: Notify team
+#         run: |
+#           echo "Production deployment completed successfully"
+#           echo "Version: v$(date +%Y%m%d%H%M%S)"
+#           echo "Deployment time: $(date)"
