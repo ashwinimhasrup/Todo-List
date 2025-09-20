@@ -96,6 +96,7 @@ jobs:
         run: |
           kubectl rollout status deployment -n prod todolist
           
+          
   #  deploy release-* branches to staging
   deploy-staging:
     name: Deploy to Staging
