@@ -76,11 +76,11 @@ jobs:
       - name: Deploy to QA
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
-          kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
           for f in k8s/dev/*.yaml; do
-            sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n dev -f -
+            sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n qa -f -
           done
-          kubectl rollout status deployment -n dev todolist
+          kubectl rollout status deployment -n qa todolist
 
   deploy-staging:
     runs-on: self-hosted
