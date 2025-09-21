@@ -109,7 +109,7 @@ jobs:
           for f in k8s/dev/*.yaml; do
             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n qa -f -
           done
-          kubectl rollout status deployment -n qa todolist
+          kubectl rollout status deployment -n dev todolist
 
   deploy-staging:
     runs-on: self-hosted
@@ -176,3 +176,4 @@ jobs:
             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n prod -f -
           done
           kubectl rollout status deployment -n prod todolist
+
