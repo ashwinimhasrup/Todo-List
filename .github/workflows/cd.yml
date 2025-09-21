@@ -106,7 +106,7 @@ jobs:
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
           kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
-          for f in k8s/dev/*.yaml; do
+          for f in k8s/qa/*.yaml; do
             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n qa -f -
           done
           kubectl rollout status deployment -n qa todolist
