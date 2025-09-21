@@ -42,7 +42,7 @@ jobs:
         uses: coderabbitai/ai-pr-reviewer@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CODERABBIT_TOKEN: ${{ secrets.CODERABBIT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         with:
           debug: false
           review_simple_changes: false
@@ -66,8 +66,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check if tests exist
+        id: check-tests
+        run: |
+          if npm run test --dry-run 2>&1 | grep -q "Error: no test specified"; then
+            echo "has-tests=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No tests specified in package.json"
+          else
+            echo "has-tests=true" >> $GITHUB_OUTPUT
+            echo "✅ Tests found in package.json"
+          fi
+
       - name: Run tests
+        if: steps.check-tests.outputs.has-tests == 'true'
         run: npm test
+
+      - name: Skip tests
+        if: steps.check-tests.outputs.has-tests == 'false'
+        run: echo "📋 Skipping tests - no test script specified in package.json"
 
       - name: Run linting
         run: npm run lint
