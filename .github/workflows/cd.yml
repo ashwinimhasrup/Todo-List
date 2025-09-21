@@ -22,7 +22,7 @@ on:
         default: 'dev'
 
 env:
-  NODE_VERSION: '18'  # ✅ Define NODE_VERSION globally
+  NODE_VERSION: '18'  
 
 jobs:
   ai-code-review:
@@ -89,7 +89,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🤖 **AI Review Complete** ✅\n\n- CodeRabbit AI analysis finished\n- All automated tests passed\n- Code quality checks completed\n\n📋 **Next Steps:**\n- Address any AI review comments\n- Request manual peer review\n- Await approval before merge'
+              body: '**AI Review Complete**\n\n- CodeRabbit AI analysis finished\n- All automated tests passed\n- Code quality checks completed\n\n**Next Steps:**\n- Address any AI review comments\n- Request manual peer review\n- Await approval before merge'
             })
 
   # Block auto-merge to ensure manual review
@@ -101,9 +101,9 @@ jobs:
     steps:
       - name: Enforce Manual Review
         run: |
-          echo "⚠️  This PR requires manual peer review and approval"
-          echo "🚫 Auto-merge is disabled for feature/* and hotfix/* branches"
-          echo "✋ A human reviewer must approve this PR before it can be merged"
+          echo " This PR requires manual peer review and approval"
+          echo " Auto-merge is disabled for feature/* and hotfix/* branches"
+          echo " A human reviewer must approve this PR before it can be merged"
 
   deploy-dev:
     runs-on: self-hosted
