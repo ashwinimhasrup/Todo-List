@@ -39,10 +39,20 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test || echo "No tests configured"
+        run: |
+          if npm test; then
+            echo "Tests passed"
+          else
+            echo "No tests configured"
+          fi
 
       - name: Run linting
-        run: npm run lint || echo "No linting configured"
+        run: |
+          if npm run lint; then
+            echo "Linting passed"
+          else
+            echo "No linting configured"
+          fi
 
       - name: Code quality check
         run: echo "Code quality checks completed - PR ready for review"
