@@ -21,6 +21,9 @@ on:
         required: true
         default: 'dev'
 
+env:
+  NODE_VERSION: '18'  # ✅ Define NODE_VERSION globally
+
 jobs:
   ai-code-review:
     name: AI Review with CodeRabbit
@@ -39,7 +42,7 @@ jobs:
         uses: coderabbitai/ai-pr-reviewer@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CODERABBIT_TOKEN: ${{ secrets.CODERABBIT_TOKEN }}
         with:
           debug: false
           review_simple_changes: false
@@ -57,7 +60,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}  # ✅ Now references the defined env var
           cache: 'npm'
 
       - name: Install dependencies
