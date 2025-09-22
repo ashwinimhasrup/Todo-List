@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CD Pipeline
 
 on:
   push:
@@ -8,18 +8,26 @@ on:
       - 'release-*'
     tags:
       - 'v*'
+
   pull_request:
     branches:
       - develop
     types: [opened, synchronize, reopened]
+
   pull_request_review_comment:
     types: [created]
+
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Deploy environment'
+        description: 'Environment to deploy to'
         required: true
-        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - qa
+          - staging
+          - prod
 
 env:
   NODE_VERSION: '18'  
@@ -107,28 +115,30 @@ jobs:
 
   deploy-dev:
     runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev'
+    if: |
+      startsWith(github.ref, 'refs/heads/hotfix/') || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     environment: dev
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
+      
       - name: Build & Push Image
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
           docker build -t $IMAGE .
           docker push $IMAGE
-
+      
       - name: Configure Kube
         run: |
           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
           kubectl cluster-info
-
+      
       - name: Deploy to Dev
         run: |
           IMAGE=${{ secrets.DOCKER_USERNAME }}/todo:${{ github.sha }}
@@ -137,6 +147,7 @@ jobs:
             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n dev -f -
           done
           kubectl rollout status deployment -n dev todolist
+
 
   deploy-qa:
     runs-on: self-hosted
