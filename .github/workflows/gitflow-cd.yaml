@@ -5,7 +5,9 @@ on:
     branches:
       - main
       - develop
-      - 'release-*'
+      - 'feature*'
+      - 'release/**'
+      - 'hotfix/**'
     tags:
       - 'v*'
 
@@ -20,14 +22,9 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy to'
+        description: 'Deploy environment'
         required: true
-        type: choice
-        options:
-          - dev
-          - qa
-          - staging
-          - prod
+        default: 'dev'
 
 env:
   NODE_VERSION: '18'  
