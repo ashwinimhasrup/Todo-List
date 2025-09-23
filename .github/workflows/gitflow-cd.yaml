@@ -34,16 +34,7 @@ jobs:
   ai-code-review:
     name: AI Review with CodeRabbit
     runs-on: ubuntu-latest
-    # Fixed condition to include release branches and both push/PR events
-    if: |
-      (github.event_name == 'pull_request' && 
-       (startsWith(github.head_ref, 'feature/') || 
-        startsWith(github.head_ref, 'hotfix/') || 
-        startsWith(github.head_ref, 'release/'))) ||
-      (github.event_name == 'push' && 
-       (startsWith(github.ref, 'refs/heads/feature/') || 
-        startsWith(github.ref, 'refs/heads/hotfix/') || 
-        startsWith(github.ref, 'refs/heads/release/')))
+    if: startsWith(github.ref, 'refs/heads/')
     permissions:
       contents: read
       pull-requests: write
@@ -66,17 +57,8 @@ jobs:
   code-review:
     name: Code Quality & Testing
     runs-on: self-hosted
-    # Same condition as ai-code-review
-    if: |
-      (github.event_name == 'pull_request' && 
-       (startsWith(github.head_ref, 'feature/') || 
-        startsWith(github.head_ref, 'hotfix/') || 
-        startsWith(github.head_ref, 'release/'))) ||
-      (github.event_name == 'push' && 
-       (startsWith(github.ref, 'refs/heads/feature/') || 
-        startsWith(github.ref, 'refs/heads/hotfix/') || 
-        startsWith(github.ref, 'refs/heads/release/')))
     needs: ai-code-review
+    if: startsWith(github.ref, 'refs/heads/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
