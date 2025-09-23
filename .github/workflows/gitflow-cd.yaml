@@ -14,6 +14,7 @@ on:
   pull_request:
     branches:
       - develop
+      - main  
     types: [opened, synchronize, reopened]
 
   pull_request_review_comment:
@@ -33,7 +34,16 @@ jobs:
   ai-code-review:
     name: AI Review with CodeRabbit
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/'))
+    # Fixed condition to include release branches and both push/PR events
+    if: |
+      (github.event_name == 'pull_request' && 
+       (startsWith(github.head_ref, 'feature/') || 
+        startsWith(github.head_ref, 'hotfix/') || 
+        startsWith(github.head_ref, 'release/'))) ||
+      (github.event_name == 'push' && 
+       (startsWith(github.ref, 'refs/heads/feature/') || 
+        startsWith(github.ref, 'refs/heads/hotfix/') || 
+        startsWith(github.ref, 'refs/heads/release/')))
     permissions:
       contents: read
       pull-requests: write
@@ -56,7 +66,16 @@ jobs:
   code-review:
     name: Code Quality & Testing
     runs-on: self-hosted
-    if: github.event_name == 'pull_request' && (startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/'))
+    # Same condition as ai-code-review
+    if: |
+      (github.event_name == 'pull_request' && 
+       (startsWith(github.head_ref, 'feature/') || 
+        startsWith(github.head_ref, 'hotfix/') || 
+        startsWith(github.head_ref, 'release/'))) ||
+      (github.event_name == 'push' && 
+       (startsWith(github.ref, 'refs/heads/feature/') || 
+        startsWith(github.ref, 'refs/heads/hotfix/') || 
+        startsWith(github.ref, 'refs/heads/release/')))
     needs: ai-code-review
     steps:
       - name: Checkout code
@@ -86,7 +105,8 @@ jobs:
           echo " AI review completed by CodeRabbit"
           echo " Manual peer review and approval required before merge"
 
-      - name: Comment PR Status
+      - name: Comment PR Status (only for PRs)
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -96,19 +116,6 @@ jobs:
               repo: context.repo.repo,
               body: '**AI Review Complete**\n\n- CodeRabbit AI analysis finished\n- All automated tests passed\n- Code quality checks completed\n\n**Next Steps:**\n- Address any AI review comments\n- Request manual peer review\n- Await approval before merge'
             })
-
-  # Block auto-merge to ensure manual review
-  require-manual-approval:
-    name: Require Manual Approval
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/'))
-    needs: [ai-code-review, code-review]
-    steps:
-      - name: Enforce Manual Review
-        run: |
-          echo " This PR requires manual peer review and approval"
-          echo " Auto-merge is disabled for feature/* and hotfix/* branches"
-          echo " A human reviewer must approve this PR before it can be merged"
 
   deploy-dev:
     runs-on: self-hosted
@@ -144,7 +151,6 @@ jobs:
             sed "s|todo:.*|$IMAGE|g" $f | kubectl apply -n dev -f -
           done
           kubectl rollout status deployment -n dev todolist
-
 
   deploy-qa:
     runs-on: self-hosted
