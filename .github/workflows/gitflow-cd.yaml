@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-      - 'feature*'
+      - 'feature/**'
       - 'release/**'
       - 'hotfix/**'
     tags:
@@ -35,6 +35,7 @@ jobs:
     runs-on: self-hosted
     if: |
       startsWith(github.ref, 'refs/heads/hotfix/') || 
+      startsWith(github.ref, 'refs/heads/feature/') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     environment: dev
     steps:
