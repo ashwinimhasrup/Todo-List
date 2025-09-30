@@ -27,7 +27,6 @@ app.use(express.urlencoded());
 // set up the static files
 app.use(express.static('assets'));
 
-
 // registering the user in the database
 app.post('/register', (req, res) => {
     Register.create({
