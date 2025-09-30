@@ -102,7 +102,7 @@ jobs:
 
   deploy-staging:
     runs-on: self-hosted
-    if: startsWith(github.ref, 'refs/heads/release-')
+    if: startsWith(github.ref, 'refs/heads/release/')
     environment: staging
     steps:
       - uses: actions/checkout@v4

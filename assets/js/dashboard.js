@@ -8,7 +8,7 @@ const greetingUser = document.querySelector('.greeting-user');
 if (hour >= 4 && hour < 12 && ampm === 'am') {
     greetingUser.innerHTML = 'Good Morning , Have a great day,';
 } else if (hour >= 12 && hour <= 17 && ampm === 'pm') {
-    greetingUser.innerHTML = 'Good Afternoon from ashwini.... ,';
+    greetingUser.innerHTML = 'Good Afternoon from cogno  ,';
 } else if (hour >= 00 && hour <= 04 && ampm === 'am') {
     greetingUser.innerHTML = 'Good Night';
 } else {
