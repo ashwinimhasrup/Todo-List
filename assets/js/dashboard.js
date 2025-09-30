@@ -6,13 +6,13 @@ const hour = date.getHours();
 const greetingUser = document.querySelector('.greeting-user');
 
 if (hour >= 4 && hour < 12 && ampm === 'am') {
-    greetingUser.innerHTML = 'Good Morning , Have a great day,';
+    greetingUser.innerHTML = 'Good Morning ,';
 } else if (hour >= 12 && hour <= 17 && ampm === 'pm') {
-    greetingUser.innerHTML = 'Good Afternoon from cogno  ,';
+    greetingUser.innerHTML = 'Good noon from cognologix,';
 } else if (hour >= 00 && hour <= 04 && ampm === 'am') {
-    greetingUser.innerHTML = 'Good Night';
+    greetingUser.innerHTML = 'Good Night Take A Rest or';
 } else {
-    greetingUser.textContent = 'Good Evening hii (hotfix),';
+    greetingUser.textContent = 'Good Evening everyone ,';
 }
 
 // add task section
@@ -150,6 +150,5 @@ for (let i = 0; i < leftSideSection.length; i++) {
         lisitButtomSection[i].classList.toggle('show-list-buttom-section');
     });
 }
-
 
 
